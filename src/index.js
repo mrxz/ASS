@@ -25,11 +25,6 @@ export default class ASS {
     video: null,
     /** the box to display subtitles */
     box: document.createElement('div'),
-    /**
-     * video resize observer
-     * @type {ResizeObserver}
-     */
-    observer: null,
     scale: 1,
     width: 0,
     height: 0,
@@ -64,7 +59,7 @@ export default class ASS {
 
   #seek;
 
-  #resize;
+  resize;
 
   /**
    * Initialize an ASS instance
@@ -139,24 +134,24 @@ export default class ASS {
     video.addEventListener('playing', this.#play);
     video.addEventListener('waiting', this.#pause);
     video.addEventListener('seeking', this.#seek);
+    // The video might already be playing
+    if (!video.paused && !video.ended && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      this.#play();
+    }
 
-    this.#resize = createResize(this, this.#store);
-    this.#resize();
+    this.resize = createResize(this, this.#store);
+    this.resize();
     this.resampling = resampling;
-
-    const observer = new ResizeObserver(this.#resize);
-    observer.observe(video);
-    this.#store.observer = observer;
 
     return this;
   }
 
   /**
-   * Desctroy the ASS instance
+   * Destroy the ASS instance
    * @returns {ASS}
    */
   destroy() {
-    const { video, box, observer } = this.#store;
+    const { video, box } = this.#store;
     this.#pause();
     clear(this.#store);
     video.removeEventListener('play', this.#play);
@@ -169,7 +164,6 @@ export default class ASS {
       $fixFontSize.remove();
     }
     box.remove();
-    observer.unobserve(this.#store.video);
 
     this.#store.styles = {};
     this.#store.dialogues = [];
@@ -206,7 +200,7 @@ export default class ASS {
     if (r === this.#resampling) return;
     if (/^(video|script)_(width|height)$/.test(r)) {
       this.#resampling = r;
-      this.#resize();
+      this.resize();
     }
   }
 
@@ -220,7 +214,4 @@ export default class ASS {
     this.#store.delay = d;
     this.#seek();
   }
-
-  // addDialogue(dialogue) {
-  // }
 }

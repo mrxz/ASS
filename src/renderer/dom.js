@@ -1,8 +1,5 @@
-import { createDrawing } from './drawing.js';
-import { createAnimatableVars, createDialogueAnimations, createTagAnimations } from './animation.js';
-import { createStrokeVars, createStrokeFilter } from './stroke.js';
-import { rotateTags, scaleTags, skewTags, createTransform } from './transform.js';
-import { createSVGEl } from '../utils.js';
+import { getRealFontSize } from './font-size.js';
+import { color2rgba } from '../utils.js';
 
 function encodeText(text, q) {
   return text
@@ -12,116 +9,104 @@ function encodeText(text, q) {
 }
 
 export function createDialogue(dialogue, store) {
+  const strokeScale = store.sbas ? store.scale : 1;
+
   const { styles } = store;
   const $div = document.createElement('div');
   $div.className = 'ASS-dialogue';
   $div.dataset.wrapStyle = dialogue.q;
+
   const df = document.createDocumentFragment();
   const { align, slices } = dialogue;
-  [
-    ['--ass-align-h', ['0%', '50%', '100%'][align.h]],
-    ['--ass-align-v', ['100%', '50%', '0%'][align.v]],
-  ].forEach(([k, v]) => {
-    $div.style.setProperty(k, v);
-  });
+  $div.style.setProperty('transform', `translate(-${['0%', '50%', '100%'][align.h]}, -${['100%', '50%', '0%'][align.v]})`);
+
   const animations = [];
   slices.forEach((slice) => {
-    const sliceTag = styles[slice.style].tag;
-    const borderStyle = styles[slice.style].style.BorderStyle;
+    const style = styles[slice.style];
+
+    const sliceTag = style.tag;
+    const borderStyle = style.style.BorderStyle;
     slice.fragments.forEach((fragment) => {
       const { text, drawing } = fragment;
       const tag = { ...sliceTag, ...fragment.tag };
-      let cssText = '';
-      const cssVars = [];
 
-      cssVars.push(...createStrokeVars(tag));
-      let stroke = null;
-      const hasStroke = tag.xbord || tag.ybord || tag.xshad || tag.yshad;
-      if (hasStroke && (drawing || tag.a1 !== '00' || tag.xbord !== tag.ybord)) {
-        const filter = createStrokeFilter(tag, store.sbas ? store.scale : 1);
-        const svg = createSVGEl('svg', [['width', 0], ['height', 0]]);
-        svg.append(filter.el);
-        stroke = { id: filter.id, el: svg };
-      }
+      let lastWasLineBreak = false;
+      encodeText(text, dialogue.q).split('\n').forEach((content, idx) => {
+        const $span = document.createElement('span');
 
-      cssVars.push(...createAnimatableVars(tag));
-      if (!drawing) {
+        if (drawing) {
+          console.warning("Drawings aren't supported yet");
+          return;
+        }
+
+        if (idx) {
+          const br = document.createElement('div');
+          br.dataset.is = 'br';
+          // Repeated line-breaks require fake/empty line height
+          if (lastWasLineBreak) {
+            br.style.setProperty('height', `${tag.fs * store.scale}px`);
+          }
+          df.append(br);
+          lastWasLineBreak = true;
+        }
+        if (!content) return;
+        lastWasLineBreak = false;
+
+        $span.textContent = content;
+        const el = $span;
+        el.dataset.text = content;
+
+        // Generate styling
+        let cssText = 'position: relative;';
+        cssText += `font-size:${getRealFontSize(tag.fn, tag.fs) * store.scale}px;`;
+        cssText += `line-height: ${tag.fs * store.scale}px;`;
+        cssText += `letter-spacing: ${tag.fsp * store.scale}px;`;
+        cssText += `color:${color2rgba(tag.a1 + tag.c1)};`;
         cssText += `font-family:"${tag.fn}";`;
         cssText += tag.b ? `font-weight:${tag.b === 1 ? 'bold' : tag.b};` : '';
         cssText += tag.i ? 'font-style:italic;' : '';
         cssText += (tag.u || tag.s) ? `text-decoration:${tag.u ? 'underline' : ''} ${tag.s ? 'line-through' : ''};` : '';
-      }
-      if (drawing && tag.pbo) {
-        const pbo = -tag.pbo * (tag.fscy || 100) / 100;
-        cssText += `vertical-align:calc(var(--ass-scale) * ${pbo}px);`;
-      }
-
-      cssVars.push(...createTransform(tag));
-      const tags = [tag, ...(tag.t || []).map((t) => t.tag)];
-      const hasRotate = rotateTags.some((x) => tags.some((t) => t[x]));
-      const hasScale = scaleTags.some((x) => tags.some((t) => t[x] !== undefined && t[x] !== 100));
-      const hasSkew = skewTags.some((x) => tags.some((t) => t[x]));
-
-      encodeText(text, dialogue.q).split('\n').forEach((content, idx) => {
-        const $span = document.createElement('span');
-        const $ssspan = document.createElement('span');
-        if (hasScale || hasSkew) {
-          if (hasScale) {
-            $ssspan.dataset.scale = '';
-          }
-          if (hasSkew) {
-            $ssspan.dataset.skew = '';
-          }
-          $ssspan.textContent = content;
-        }
-        if (hasRotate) {
-          $span.dataset.rotate = '';
-        }
-        if (drawing) {
-          $span.dataset.drawing = '';
-          const obj = createDrawing(fragment, sliceTag, store);
-          if (!obj) return;
-          $span.style.cssText = obj.cssText;
-          $span.append(obj.$svg);
-        } else {
-          if (idx) {
-            const br = document.createElement('div');
-            br.dataset.is = 'br';
-            br.style.setProperty('--ass-tag-fs', tag.fs);
-            df.append(br);
-          }
-          if (!content) return;
-          if (hasScale || hasSkew) {
-            $span.append($ssspan);
-          } else {
-            $span.textContent = content;
-          }
-          const el = hasScale || hasSkew ? $ssspan : $span;
-          el.dataset.text = content;
-          if (hasStroke) {
-            el.dataset.borderStyle = borderStyle;
-            if (!tag.xbord && !tag.ybord) {
-              el.dataset.noBorder = '';
-            }
-            el.dataset.stroke = 'css';
-          }
-          if (stroke) {
-            el.dataset.stroke = 'svg';
-            // TODO: it doesn't support animation
-            el.style.filter = `url(#${stroke.id})`;
-            el.append(stroke.el);
-          }
-        }
         $span.style.cssText += cssText;
-        cssVars.forEach(([k, v]) => {
-          $span.style.setProperty(k, v);
-        });
-        animations.push(...createTagAnimations($span, fragment, sliceTag));
+
+        if (borderStyle === 1) {
+          // Determine shadow and outline pixels sizes.
+          // Outline must be at least 1 if there's any shadow.
+          const anyShadow = Math.max(tag.xshad, tag.yshad) > 0;
+          const xbord = Math.max(anyShadow > 0 ? 1 : 0, tag.xbord) * 2 * strokeScale;
+          const $shadowSpan = anyShadow ? $span.cloneNode(true) : null;
+          const $borderSpan = xbord > 0 ? $span.cloneNode(true) : null;
+          const $textNode = $span.firstChild;
+
+          if (anyShadow) {
+            // eslint-disable-next-line unicorn/prefer-modern-dom-apis
+            $span.insertBefore($shadowSpan, $textNode);
+
+            cssText = $shadowSpan.style.cssText;
+            cssText += 'position: absolute;top: 0;left: 0;z-index: -1;';
+            cssText += `-webkit-text-stroke-width: ${xbord}px;`;
+            cssText += `-webkit-text-stroke-color: ${color2rgba(tag.a4 + tag.c4)};`;
+            cssText += `transform: translate(${strokeScale * tag.xshad}px, ${strokeScale * tag.yshad}px);`;
+            $shadowSpan.style.cssText = cssText;
+          }
+
+          if (xbord > 0) {
+            // eslint-disable-next-line unicorn/prefer-modern-dom-apis
+            $span.insertBefore($borderSpan, $textNode);
+
+            cssText = $borderSpan.style.cssText;
+            cssText += 'position: absolute;top: 0;left: 0;z-index: -1;';
+            cssText += `-webkit-text-stroke-width: ${xbord}px;`;
+            cssText += `-webkit-text-stroke-color: ${color2rgba(tag.a3 + tag.c3)};`;
+            $borderSpan.style.cssText = cssText;
+          }
+        } else if (borderStyle === 3) {
+          // TODO: Opaque box
+        }
+
         df.append($span);
       });
     });
   });
-  animations.push(...createDialogueAnimations($div, dialogue));
   $div.append(df);
   return { $div, animations };
 }

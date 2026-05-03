@@ -10,30 +10,23 @@
   position: absolute;
   z-index: 0;
   transform: translate(calc(var(--ass-align-h) * -1), calc(var(--ass-align-v) * -1));
-  span {
-    display: inline-block;
-  }
-  [data-text] {
-    display: inline-block;
-    color: var(--ass-fill-color);
-    font-size: calc(var(--ass-scale) * var(--ass-real-fs) * 1px);
-    line-height: calc(var(--ass-scale) * var(--ass-tag-fs) * 1px);
-    letter-spacing: calc(var(--ass-scale) * var(--ass-tag-fsp) * 1px);
-    /* for \bord0\blur4 */
-    /* when x > 0, round(up, sin(x) * sin(x)) === sign(x) */
-    /* sign() requires higher browser version */
-    filter: blur(calc(
-      var(--ass-scale-stroke)
-      * var(--ass-tag-blur)
-      * (1 - round(up, sin(var(--ass-tag-xbord)) * sin(var(--ass-tag-xbord))))
-      * (1 - round(up, sin(var(--ass-tag-ybord)) * sin(var(--ass-tag-ybord))))
-      * 1px
-    ));
-  }
-  [data-is="br"] + [data-is="br"] {
-    height: calc(var(--ass-scale) * var(--ass-tag-fs) * 1px / 2);
-  }
 }
+
+.ASS-dialogue span {
+  display: inline-block
+}
+
+.ASS-dialogue [data-text] {
+  display: inline-block;
+  color: white;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.ASS-dialogue [data-is="br"] + [data-is="br"] {
+  height: calc(var(--ass-scale) * var(--ass-tag-fs) * 1px / 2);
+}
+
 
 .ASS-dialogue[data-wrap-style="0"],
 .ASS-dialogue[data-wrap-style="3"] {
@@ -52,33 +45,38 @@
 
 .ASS-dialogue [data-border-style="1"] {
   position: relative;
-  &::before,
-  &::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -1;
-    filter: blur(calc(var(--ass-scale-stroke) * var(--ass-tag-blur) * 1px));
-  }
-  &::before {
-    color: var(--ass-shadow-color);
-    -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-shadow-color);
-    transform: translate(calc(var(--ass-scale-stroke) * var(--ass-tag-xshad) * 1px),
-        calc(var(--ass-scale-stroke) * var(--ass-tag-yshad) * 1px));
-  }
-  &::after {
-    color: var(--ass-border-color);
-    -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-border-color);
-  }
-  &[data-stroke="svg"] {
-    color: #000;
-    &::before,
-    &::after {
-      opacity: 0;
-    }
-  }
 }
+
+/*
+.ASS-dialogue [data-border-style="1"]::before,
+.ASS-dialogue [data-border-style="1"]::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  filter: blur(calc(var(--ass-scale-stroke) * var(--ass-tag-blur) * 1px));
+}
+
+.ASS-dialogue [data-border-style="1"]::before {
+  color: var(--ass-shadow-color);
+  -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-shadow-color);
+  transform: translate(calc(var(--ass-scale-stroke) * var(--ass-tag-xshad) * 1px),
+      calc(var(--ass-scale-stroke) * var(--ass-tag-yshad) * 1px));
+}
+.ASS-dialogue [data-border-style="1"]::after {
+  color: var(--ass-border-color);
+  -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-border-color);
+}
+
+.ASS-dialogue [data-border-style="1"][data-stroke="svg"] {
+  color: #000;
+}
+.ASS-dialogue [data-border-style="1"][data-stroke="svg"]::before,
+.ASS-dialogue [data-border-style="1"][data-stroke="svg"]::after {
+  opacity: 0;
+}
+
 @container style(--ass-tag-xbord: 0) and style(--ass-tag-ybord: 0) {
   .ASS-dialogue [data-border-style="1"]::after {
     display: none;
@@ -88,7 +86,7 @@
   .ASS-dialogue [data-border-style="1"]::before {
     display: none;
   }
-}
+}*/
 
 .ASS-dialogue [data-border-style="3"] {
   display: inline;
@@ -139,10 +137,11 @@
   position: absolute;
   visibility: hidden;
   overflow: hidden;
-  span {
-    position: absolute;
-  }
 }
+.ASS-fix-font-size span {
+  position: absolute;
+}
+
 .ASS-clip-area {
   width: 100%;
   height: 100%;
@@ -157,12 +156,12 @@
   height: fit-content;
   overflow: hidden;
   mask-composite: intersect;
-  &[data-effect="banner"] {
-    flex-direction: column;
-    height: 100%;
-  }
-  .ASS-dialogue {
-    position: static;
-    transform: none;
-  }
+}
+.ASS-effect-area &[data-effect="banner"] {
+  flex-direction: column;
+  height: 100%;
+}
+.ASS-effect-area .ASS-dialogue {
+  position: static;
+  transform: none;
 }

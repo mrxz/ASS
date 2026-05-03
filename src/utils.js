@@ -39,19 +39,14 @@ export function createSVGEl(name, attrs = []) {
   return $el;
 }
 
-/**
- * @param {HTMLElement} container
- */
-export function addGlobalStyle(container) {
-  const rootNode = container.getRootNode() || document;
-  const styleRoot = rootNode === document ? document.head : rootNode;
-  let $style = styleRoot.querySelector('#ASS-global-style');
+export function addGlobalStyle() {
+  let $style = document.head.querySelector('#ASS-global-style');
   if (!$style) {
     $style = document.createElement('style');
     $style.type = 'text/css';
     $style.id = 'ASS-global-style';
     $style.append(document.createTextNode(GLOBAL_CSS));
-    styleRoot.append($style);
+    document.head.append($style);
   }
 }
 

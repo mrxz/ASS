@@ -44,11 +44,12 @@ declare class ASS {
      * ```
      */
     constructor(content: string, video: HTMLVideoElement, { container, resampling }?: ASSOption);
+    resize: () => void;
     set resampling(r: ASSOption["resampling"]);
     /** @type {ASSOption['resampling']} */
     get resampling(): ASSOption["resampling"];
     /**
-     * Desctroy the ASS instance
+     * Destroy the ASS instance
      * @returns {ASS}
      */
     destroy(): ASS;
