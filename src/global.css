@@ -32,7 +32,7 @@
 .ASS-dialogue[data-wrap-style="3"] {
   /* \q3 is just treated the same as \q0 in libass */
   text-wrap: balance;
-  white-space: pre-wrap;
+  white-space: pre;
 }
 .ASS-dialogue[data-wrap-style="1"] {
   word-break: break-word;
